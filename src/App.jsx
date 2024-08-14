@@ -3,42 +3,14 @@ import Blog from "./components/Blog";
 import blogService from "./services/blogs";
 import loginService from "./services/login";
 import NewBlogForm from "./components/NewBlogForm";
+import {
+  showError,
+  showNotification,
+  hideNotification,
+} from "./NotificationContext";
 
-import { useReducer } from "react";
-
-const notificationReducer = (state, action) => {
-  switch (action.type) {
-    case "notification":
-      return action.payload;
-    case "error":
-      return action.payload;
-    case "hide":
-      return null;
-    default:
-      return state;
-  }
-};
-
-const showNotification = (message) => {
-  return {
-    type: "notification",
-    payload: message,
-  };
-};
-
-const showError = (message) => {
-  return {
-    type: "error",
-    payload: message,
-  };
-};
-
-const hideNotification = () => {
-  return {
-    type: "hide",
-    payload: "",
-  };
-};
+import NotificationContext from "./NotificationContext";
+import { useContext } from "react";
 
 const App = () => {
   const [blogs, setBlogs] = useState([]);
@@ -52,7 +24,7 @@ const App = () => {
   const [notification, setNotification] = useState(null);
   const [blogVisible, setBlogVisible] = useState(false);
 
-  const [message, messageDispatch] = useReducer(notificationReducer, null);
+  const [message, dispatch] = useContext(NotificationContext);
 
   useEffect(() => {
     blogService
@@ -185,17 +157,15 @@ const App = () => {
           setUrl("");
           setBlogVisible(!blogVisible);
 
-          messageDispatch(
-            showNotification(`a new blog ${title} by ${author} added`)
-          );
+          dispatch(showNotification(`a new blog ${title} by ${author} added`));
           setTimeout(() => {
-            messageDispatch(hideNotification());
+            dispatch(hideNotification());
           }, 2000);
         });
     } catch (error) {
-      messageDispatch(showError("error"));
+      dispatch(showError("error"));
       setTimeout(() => {
-        messageDispatch(hideNotification());
+        dispatch(hideNotification());
       }, 2000);
     }
   };
