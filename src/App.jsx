@@ -53,7 +53,6 @@ const ErrorMessage = ({ message }) => {
 };
 
 const App = () => {
-  // const [blogs, setBlogs] = useState([]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [user, setUser] = useState(null);
@@ -198,13 +197,7 @@ const App = () => {
           {blogs
             .sort((a, b) => b.likes - a.likes)
             .map((blog) => (
-              <Blog
-                key={blog.id}
-                blog={blog}
-                user={user}
-                // setBlogs={newBlogMutation}
-                blogs={blogs}
-              />
+              <Blog key={blog.id} blog={blog} user={user} />
             ))}
         </div>
       </>

@@ -4,11 +4,17 @@ import PropTypes from "prop-types";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-const Blog = ({ blog, user, setBlogs, blogs }) => {
+const Blog = ({ blog, user }) => {
   const [details, setDetails] = useState(false);
+
   const queryClient = useQueryClient();
   const putBlogMutation = useMutation({
     mutationFn: blogService.put,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["blogs"] }),
+  });
+
+  const eliminarBlogMutation = useMutation({
+    mutationFn: blogService.eliminar,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["blogs"] }),
   });
 
@@ -28,12 +34,7 @@ const Blog = ({ blog, user, setBlogs, blogs }) => {
     };
 
     try {
-      blogService.put(object).then(() => {
-        const b = blog;
-        const bChange = { ...b, likes: blog.likes + 1 };
-        setBlogs(blogs.map((vlog) => (vlog.id === blog.id ? bChange : vlog)));
-        // console.log(blogs)
-      });
+      putBlogMutation.mutate(object);
     } catch (error) {
       console.log("error");
     }
@@ -63,10 +64,12 @@ const Blog = ({ blog, user, setBlogs, blogs }) => {
       `Removing blog ${blog.title} by ${blog.author}`
     );
     if (response === true) {
-      blogService.setToken(user.token);
-      blogService.eliminar(blog.id).then(() => {
-        setBlogs(blogs.filter((vlog) => vlog.id !== blog.id));
-      });
+      try {
+        blogService.setToken(user.token);
+        eliminarBlogMutation.mutate(blog.id);
+      } catch (error) {
+        console.log("error");
+      }
     }
   };
 
@@ -99,8 +102,6 @@ const Blog = ({ blog, user, setBlogs, blogs }) => {
 Blog.propTypes = {
   blog: PropTypes.object.isRequired,
   user: PropTypes.object.isRequired,
-  // setBlogs: PropTypes.func.isRequired,
-  blogs: PropTypes.array.isRequired,
 };
 
 export default Blog;
