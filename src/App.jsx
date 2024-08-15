@@ -12,8 +12,48 @@ import {
 import NotificationContext from "./NotificationContext";
 import { useContext } from "react";
 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+const Notification = ({ message }) => {
+  if (message === null) return null;
+
+  const css = {
+    color: "green",
+    background: "lightgrey",
+    fontSize: 20,
+    borderStyle: "solid",
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10,
+  };
+
+  return (
+    <div style={css}>
+      <p>{message}</p>
+    </div>
+  );
+};
+
+const ErrorMessage = ({ message }) => {
+  if (message === null) return null;
+  const css = {
+    color: "red",
+    background: "lightgrey",
+    fontSize: 20,
+    borderStyle: "solid",
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10,
+  };
+  return (
+    <div style={css}>
+      <p>{message}</p>
+    </div>
+  );
+};
+
 const App = () => {
-  const [blogs, setBlogs] = useState([]);
+  // const [blogs, setBlogs] = useState([]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [user, setUser] = useState(null);
@@ -21,20 +61,15 @@ const App = () => {
   const [author, setAuthor] = useState("");
   const [url, setUrl] = useState("");
   const [errorMessage, setErrorMessage] = useState(null);
-  const [notification, setNotification] = useState(null);
   const [blogVisible, setBlogVisible] = useState(false);
 
   const [message, dispatch] = useContext(NotificationContext);
 
-  useEffect(() => {
-    blogService
-      .getAll()
-      .then((blogs) => setBlogs(blogs))
-      .catch((error) => {
-        console.log("error App.jsx");
-        return [];
-      });
-  }, []);
+  const queryClient = useQueryClient();
+  const newBlogMutation = useMutation({
+    mutationFn: blogService.create,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["blogs"] }),
+  });
 
   useEffect(() => {
     const loggedUserJSON = window.localStorage.getItem("loggedBlogappUser");
@@ -44,42 +79,16 @@ const App = () => {
     }
   }, []);
 
-  const Notification = ({ message }) => {
-    if (message === null) return null;
-    const css = {
-      color: "green",
-      background: "lightgrey",
-      fontSize: 20,
-      borderStyle: "solid",
-      borderRadius: 5,
-      padding: 10,
-      marginBottom: 10,
-    };
+  const result = useQuery({
+    queryKey: ["blogs"],
+    queryFn: blogService.getAll,
+  });
 
-    return (
-      <div style={css}>
-        <p>{message}</p>
-      </div>
-    );
-  };
+  if (result.isLoading) {
+    return <div>Loading data ...</div>;
+  }
 
-  const ErrorMessage = ({ message }) => {
-    if (message === null) return null;
-    const css = {
-      color: "red",
-      background: "lightgrey",
-      fontSize: 20,
-      borderStyle: "solid",
-      borderRadius: 5,
-      padding: 10,
-      marginBottom: 10,
-    };
-    return (
-      <div style={css}>
-        <p>{message}</p>
-      </div>
-    );
-  };
+  const blogs = result.data;
 
   const handleLogin = async (event) => {
     event.preventDefault();
@@ -139,34 +148,22 @@ const App = () => {
     event.preventDefault();
     try {
       blogService.setToken(user.token);
-      blogService
-        .create({ title: title, author: author, url: url })
-        .then((returnedBlog) => {
-          setBlogs(
-            blogs.concat({
-              ...returnedBlog,
-              user: {
-                username: user.username,
-                name: user.name,
-                id: returnedBlog.id,
-              },
-            })
-          );
-          setAuthor("");
-          setTitle("");
-          setUrl("");
-          setBlogVisible(!blogVisible);
+      newBlogMutation.mutate({ title: title, author: author, url: url });
+      setAuthor("");
+      setTitle("");
+      setUrl("");
+      setBlogVisible(!blogVisible);
 
-          dispatch(showNotification(`a new blog ${title} by ${author} added`));
-          setTimeout(() => {
-            dispatch(hideNotification());
-          }, 2000);
-        });
-    } catch (error) {
-      dispatch(showError("error"));
+      dispatch(showNotification(`a new blog ${title} by ${author} added`));
       setTimeout(() => {
         dispatch(hideNotification());
       }, 2000);
+      //     });
+    } catch (error) {
+      setErrorMessage("error with the blog");
+      setTimeout(() => {
+        setErrorMessage(null);
+      }, 3000);
     }
   };
 
@@ -205,7 +202,7 @@ const App = () => {
                 key={blog.id}
                 blog={blog}
                 user={user}
-                setBlogs={setBlogs}
+                // setBlogs={newBlogMutation}
                 blogs={blogs}
               />
             ))}
