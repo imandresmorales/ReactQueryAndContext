@@ -14,47 +14,12 @@ import { useContext } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-const Notification = ({ message }) => {
-  if (message === null) return null;
+import Notification from "./components/Notification";
+import ErrorMessage from "./components/ErrorMessage";
 
-  const css = {
-    color: "green",
-    background: "lightgrey",
-    fontSize: 20,
-    borderStyle: "solid",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
-  };
-
-  return (
-    <div style={css}>
-      <p>{message}</p>
-    </div>
-  );
-};
-
-const ErrorMessage = ({ message }) => {
-  if (message === null) return null;
-  const css = {
-    color: "red",
-    background: "lightgrey",
-    fontSize: 20,
-    borderStyle: "solid",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
-  };
-  return (
-    <div style={css}>
-      <p>{message}</p>
-    </div>
-  );
-};
+import LoginContext from "./LoginContext";
 
 const App = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [user, setUser] = useState(null);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
@@ -63,6 +28,7 @@ const App = () => {
   const [blogVisible, setBlogVisible] = useState(false);
 
   const [message, dispatch] = useContext(NotificationContext);
+  const [{ username, password }, dispatchData] = useContext(LoginContext);
 
   const queryClient = useQueryClient();
   const newBlogMutation = useMutation({
@@ -87,6 +53,10 @@ const App = () => {
     return <div>Loading data ...</div>;
   }
 
+  if (result.isError) {
+    return <div>Error with the server...</div>;
+  }
+
   const blogs = result.data;
 
   const handleLogin = async (event) => {
@@ -99,14 +69,21 @@ const App = () => {
       window.localStorage.setItem("loggedBlogappUser", JSON.stringify(user));
       blogService.setToken(user.token);
       setUser(user);
-      setUsername("");
-      setPassword("");
+      dispatchData({ type: "del" });
     } catch (exception) {
       setErrorMessage("wrong username or password");
       setTimeout(() => {
         setErrorMessage(null);
       }, 3000);
     }
+  };
+
+  const handleUsername = (event) => {
+    const user = event.target.value;
+    dispatchData({
+      type: "loginUser",
+      payload: { username: user },
+    });
   };
 
   const loginForm = () => {
@@ -120,7 +97,7 @@ const App = () => {
               type="text"
               value={username}
               name="Username"
-              onChange={({ target }) => setUsername(target.value)}
+              onChange={handleUsername}
             />
           </div>
           <div>
@@ -129,7 +106,12 @@ const App = () => {
               type="password"
               value={password}
               name="Password"
-              onChange={({ target }) => setPassword(target.value)}
+              onChange={(event) =>
+                dispatchData({
+                  type: "loginPassword",
+                  payload: { password: event.target.value },
+                })
+              }
             />
           </div>
           <button type="submit">login</button>
@@ -152,12 +134,10 @@ const App = () => {
       setTitle("");
       setUrl("");
       setBlogVisible(!blogVisible);
-
       dispatch(showNotification(`a new blog ${title} by ${author} added`));
       setTimeout(() => {
         dispatch(hideNotification());
       }, 2000);
-      //     });
     } catch (error) {
       setErrorMessage("error with the blog");
       setTimeout(() => {
