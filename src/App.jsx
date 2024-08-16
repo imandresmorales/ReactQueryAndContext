@@ -3,13 +3,7 @@ import Blog from "./components/Blog";
 import blogService from "./services/blogs";
 import loginService from "./services/login";
 import NewBlogForm from "./components/NewBlogForm";
-import {
-  showError,
-  showNotification,
-  hideNotification,
-} from "./NotificationContext";
 
-import NotificationContext from "./NotificationContext";
 import { useContext } from "react";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +12,34 @@ import Notification from "./components/Notification";
 import ErrorMessage from "./components/ErrorMessage";
 
 import LoginContext from "./LoginContext";
+import { useReducer } from "react";
+
+const notificationReducer = (state, action) => {
+  switch (action.type) {
+    case "notification":
+      return action.payload;
+    case "error":
+      return action.payload;
+    case "hide":
+      return null;
+    default:
+      return state;
+  }
+};
+
+const showNotification = (message) => {
+  return {
+    type: "notification",
+    payload: message,
+  };
+};
+
+const hideNotification = () => {
+  return {
+    type: "hide",
+    payload: "",
+  };
+};
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -27,7 +49,7 @@ const App = () => {
   const [errorMessage, setErrorMessage] = useState(null);
   const [blogVisible, setBlogVisible] = useState(false);
 
-  const [message, dispatch] = useContext(NotificationContext);
+  const [message, messageDispatch] = useReducer(notificationReducer, null);
   const [{ username, password }, dispatchData] = useContext(LoginContext);
 
   const queryClient = useQueryClient();
@@ -134,10 +156,12 @@ const App = () => {
       setTitle("");
       setUrl("");
       setBlogVisible(!blogVisible);
-      dispatch(showNotification(`a new blog ${title} by ${author} added`));
+      messageDispatch(
+        showNotification(`a new blog ${title} by ${author} added`)
+      );
       setTimeout(() => {
-        dispatch(hideNotification());
-      }, 2000);
+        messageDispatch(hideNotification());
+      }, 5000);
     } catch (error) {
       setErrorMessage("error with the blog");
       setTimeout(() => {
